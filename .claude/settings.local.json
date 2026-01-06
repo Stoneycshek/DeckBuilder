@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(if exist \"元素合成_deckbuilder_遊戲設計總結文件\\(draft\\).md\" move \"元素合成_deckbuilder_遊戲設計總結文件\\(draft\\).md\" docsDESIGN.md)",
+      "Bash(move \"元素合成_deckbuilder_遊戲設計總結文件\\(draft\\).md\" \"docs\\\\DESIGN.md\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

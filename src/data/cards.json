@@ -1,0 +1,372 @@
+{
+  "$schema": "../types/card.ts",
+  "description": "基礎卡牌數據 - MVP 版本 (12 張基礎卡)",
+  "version": "0.1.0",
+  "cards": [
+    {
+      "id": "card_fireball",
+      "name": "火球術",
+      "description": "造成 8 點火焰傷害",
+      "rarity": "BASIC",
+      "cost": 2,
+      "effects": [
+        {
+          "type": "DAMAGE",
+          "value": 8,
+          "target": "ENEMY"
+        }
+      ],
+      "tags": ["FIRE", "RANGED"],
+      "components": [
+        {
+          "id": "comp_fire",
+          "name": "火元素",
+          "type": "FIRE"
+        },
+        {
+          "id": "comp_ranged",
+          "name": "遠程型態",
+          "type": "RANGED"
+        }
+      ],
+      "synthesisLevel": 1,
+      "emoji": "🔥",
+      "isStarterCard": false,
+      "obtainableInRun": true
+    },
+    {
+      "id": "card_fire_enchant",
+      "name": "火焰附魔",
+      "description": "使你的下一次攻擊額外造成 4 點火焰傷害",
+      "rarity": "BASIC",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "BUFF_DAMAGE",
+          "value": 4,
+          "target": "SELF",
+          "turns": 1
+        }
+      ],
+      "tags": ["FIRE", "BUFF"],
+      "components": [
+        {
+          "id": "comp_fire",
+          "name": "火元素",
+          "type": "FIRE"
+        },
+        {
+          "id": "comp_buff",
+          "name": "強化",
+          "type": "BUFF"
+        }
+      ],
+      "synthesisLevel": 1,
+      "emoji": "🔥🔧",
+      "isStarterCard": false,
+      "obtainableInRun": true
+    },
+    {
+      "id": "card_ice_arrow",
+      "name": "冰箭",
+      "description": "造成 6 點冰霜傷害並使敵人緩速",
+      "rarity": "BASIC",
+      "cost": 2,
+      "effects": [
+        {
+          "type": "DAMAGE",
+          "value": 6,
+          "target": "ENEMY"
+        },
+        {
+          "type": "SLOW",
+          "value": 1,
+          "target": "ENEMY",
+          "turns": 1
+        }
+      ],
+      "tags": ["ICE", "RANGED", "CONTROL"],
+      "components": [
+        {
+          "id": "comp_ice",
+          "name": "冰元素",
+          "type": "ICE"
+        },
+        {
+          "id": "comp_ranged",
+          "name": "遠程型態",
+          "type": "RANGED"
+        }
+      ],
+      "synthesisLevel": 1,
+      "emoji": "❄️",
+      "isStarterCard": false,
+      "obtainableInRun": true
+    },
+    {
+      "id": "card_frost_shield",
+      "name": "冰霜護盾",
+      "description": "獲得 6 點護甲,護甲在回合結束時不消失",
+      "rarity": "BASIC",
+      "cost": 2,
+      "effects": [
+        {
+          "type": "BLOCK",
+          "value": 6,
+          "target": "SELF"
+        }
+      ],
+      "tags": ["ICE", "DEFENSE", "RETAIN"],
+      "components": [
+        {
+          "id": "comp_ice",
+          "name": "冰元素",
+          "type": "ICE"
+        },
+        {
+          "id": "comp_defense",
+          "name": "防禦型態",
+          "type": "DEFENSE"
+        }
+      ],
+      "synthesisLevel": 1,
+      "emoji": "❄️🛡",
+      "isStarterCard": false,
+      "obtainableInRun": true
+    },
+    {
+      "id": "card_slash",
+      "name": "斬擊",
+      "description": "造成 6 點物理傷害",
+      "rarity": "BASIC",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "DAMAGE",
+          "value": 6,
+          "target": "ENEMY"
+        }
+      ],
+      "tags": ["PHYSICAL", "MELEE"],
+      "components": [
+        {
+          "id": "comp_physical",
+          "name": "物理元素",
+          "type": "PHYSICAL"
+        },
+        {
+          "id": "comp_melee",
+          "name": "近戰型態",
+          "type": "MELEE"
+        }
+      ],
+      "synthesisLevel": 1,
+      "emoji": "⚔️",
+      "isStarterCard": true,
+      "obtainableInRun": true
+    },
+    {
+      "id": "card_thrust",
+      "name": "突刺",
+      "description": "造成 4 點傷害,無視護甲",
+      "rarity": "BASIC",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "DAMAGE",
+          "value": 4,
+          "target": "ENEMY"
+        }
+      ],
+      "tags": ["PHYSICAL", "MELEE", "PIERCING"],
+      "components": [
+        {
+          "id": "comp_physical",
+          "name": "物理元素",
+          "type": "PHYSICAL"
+        },
+        {
+          "id": "comp_melee",
+          "name": "近戰型態",
+          "type": "MELEE"
+        }
+      ],
+      "synthesisLevel": 1,
+      "emoji": "🗡️",
+      "isStarterCard": false,
+      "obtainableInRun": true
+    },
+    {
+      "id": "card_shoot",
+      "name": "射擊",
+      "description": "造成 5 點遠程傷害",
+      "rarity": "BASIC",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "DAMAGE",
+          "value": 5,
+          "target": "ENEMY"
+        }
+      ],
+      "tags": ["PHYSICAL", "RANGED"],
+      "components": [
+        {
+          "id": "comp_physical",
+          "name": "物理元素",
+          "type": "PHYSICAL"
+        },
+        {
+          "id": "comp_ranged",
+          "name": "遠程型態",
+          "type": "RANGED"
+        }
+      ],
+      "synthesisLevel": 1,
+      "emoji": "🏹",
+      "isStarterCard": false,
+      "obtainableInRun": true
+    },
+    {
+      "id": "card_defend",
+      "name": "防禦",
+      "description": "獲得 5 點護甲",
+      "rarity": "BASIC",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "BLOCK",
+          "value": 5,
+          "target": "SELF"
+        }
+      ],
+      "tags": ["PHYSICAL", "DEFENSE"],
+      "components": [
+        {
+          "id": "comp_physical",
+          "name": "物理元素",
+          "type": "PHYSICAL"
+        },
+        {
+          "id": "comp_defense",
+          "name": "防禦型態",
+          "type": "DEFENSE"
+        }
+      ],
+      "synthesisLevel": 1,
+      "emoji": "🛡️",
+      "isStarterCard": true,
+      "obtainableInRun": true
+    },
+    {
+      "id": "card_focus",
+      "name": "集中",
+      "description": "使你的下一張牌消耗減少 1 點能量",
+      "rarity": "BASIC",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "ENERGY",
+          "value": -1,
+          "target": "SELF"
+        }
+      ],
+      "tags": ["BUFF"],
+      "components": [
+        {
+          "id": "comp_buff",
+          "name": "強化",
+          "type": "BUFF"
+        }
+      ],
+      "synthesisLevel": 1,
+      "emoji": "🧠",
+      "isStarterCard": false,
+      "obtainableInRun": true
+    },
+    {
+      "id": "card_charge",
+      "name": "蓄力",
+      "description": "棄置 1 張牌,你的下一次攻擊額外造成 6 點傷害",
+      "rarity": "BASIC",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "BUFF_DAMAGE",
+          "value": 6,
+          "target": "SELF",
+          "turns": 1
+        }
+      ],
+      "tags": ["BUFF"],
+      "components": [
+        {
+          "id": "comp_buff",
+          "name": "強化",
+          "type": "BUFF"
+        },
+        {
+          "id": "comp_modifier",
+          "name": "修飾零件",
+          "type": "MODIFIER"
+        }
+      ],
+      "synthesisLevel": 1,
+      "emoji": "⚡",
+      "isStarterCard": false,
+      "obtainableInRun": true
+    },
+    {
+      "id": "card_heal",
+      "name": "治療",
+      "description": "回復 7 點生命值",
+      "rarity": "BASIC",
+      "cost": 2,
+      "effects": [
+        {
+          "type": "HEAL",
+          "value": 7,
+          "target": "SELF"
+        }
+      ],
+      "tags": ["HEAL"],
+      "components": [
+        {
+          "id": "comp_heal",
+          "name": "治療",
+          "type": "HEAL"
+        }
+      ],
+      "synthesisLevel": 1,
+      "emoji": "💚",
+      "isStarterCard": false,
+      "obtainableInRun": true
+    },
+    {
+      "id": "card_battle_focus",
+      "name": "戰鬥專注",
+      "description": "抽 2 張牌",
+      "rarity": "BASIC",
+      "cost": 1,
+      "effects": [
+        {
+          "type": "DRAW",
+          "value": 2,
+          "target": "SELF"
+        }
+      ],
+      "tags": ["DRAW"],
+      "components": [
+        {
+          "id": "comp_draw",
+          "name": "抽牌",
+          "type": "DRAW"
+        }
+      ],
+      "synthesisLevel": 1,
+      "emoji": "📖",
+      "isStarterCard": false,
+      "obtainableInRun": true
+    }
+  ]
+}
