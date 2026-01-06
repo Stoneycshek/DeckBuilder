@@ -24,7 +24,10 @@
     "energyPerTurn": 3,
     "startingHandSize": 5,
     "maxHandSize": 10,
-    "blockResetOnTurnEnd": true
+    "drawPerTurn": 5,
+    "drawToHandSize": true,
+    "blockResetOnTurnEnd": true,
+    "retainBlockTurns": 1
   },
   "rewards": {
     "cardRewardOptions": 3,
@@ -62,6 +65,12 @@
       "heal": 4,
       "draw": 2.5,
       "energy": 7
+    },
+    "statusEffects": {
+      "slowDamageReduction": 2,
+      "slowMinDamage": 1,
+      "buffStackable": true,
+      "debuffStackable": true
     },
     "description": "1 點能量的戰鬥價值換算表"
   },
