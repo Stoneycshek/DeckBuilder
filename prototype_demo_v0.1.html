@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>抉擇引擎 Prototype</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: pan-y;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 10px;
+            gap: 10px;
+        }
+
+        /* 頂部狀態區 */
+        .status-bar {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .player-status, .enemy-status {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            opacity: 0.8;
+            font-size: 12px;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .hp { color: #ff6b6b; }
+        .energy { color: #51cf66; }
+        .armor { color: #74c0fc; }
+        .strength { color: #ffd43b; }
+        .enemy-hp { color: #ff8787; }
+        .enemy-intent { color: #ff6b6b; }
+
+        /* 敵人區域 */
+        .enemy-area {
+            background: rgba(139, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            border: 2px solid rgba(255, 107, 107, 0.3);
+        }
+
+        .enemy-intent-text {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 8px;
+        }
+
+        /* 回合資訊 */
+        .turn-info {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        /* 手牌區域 */
+        .hand-area {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 10px 0;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            border-radius: 10px;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card:active {
+            transform: scale(0.95);
+        }
+
+        .card.unplayable {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .card-name {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .card-cost {
+            background: #51cf66;
+            color: #000;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .card-description {
+            font-size: 12px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .card-type {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 6px;
+        }
+
+        /* 按鈕區域 */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #fff;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%);
+        }
+
+        /* 選擇面板 */
+        .choice-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .choice-panel.active {
+            display: flex;
+        }
+
+        .choice-container {
+            background: #2d3748;
+            border-radius: 16px;
+            padding: 20px;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .choice-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+
+        .choice-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .choice-btn {
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .choice-btn:active {
+            transform: scale(0.98);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .choice-btn-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .choice-btn-desc {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* 遊戲結束面板 */
+        .game-over-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .game-over-panel.active {
+            display: flex;
+        }
+
+        .game-over-container {
+            background: #2d3748;
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .game-over-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+
+        .game-over-title.victory {
+            color: #51cf66;
+        }
+
+        .game-over-title.defeat {
+            color: #ff6b6b;
+        }
+
+        .game-over-stats {
+            margin: 20px 0;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 16px;
+            border-radius: 10px;
+        }
+
+        .game-over-stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        /* 卡牌選擇面板 */
+        .card-choice-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card-choice-item {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .card-choice-item:active {
+            transform: scale(0.98);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* 移除卡牌面板 */
+        .remove-card-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- 狀態列 -->
+        <div class="status-bar">
+            <div class="player-status">
+                <div class="stat-item">
+                    <span class="stat-label">HP:</span>
+                    <span class="stat-value hp" id="player-hp">30</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">能量:</span>
+                    <span class="stat-value energy" id="player-energy">3</span>
+                </div>
+                <div class="stat-item" id="armor-display" style="display: none;">
+                    <span class="stat-label">護甲:</span>
+                    <span class="stat-value armor" id="player-armor">0</span>
+                </div>
+                <div class="stat-item" id="strength-display" style="display: none;">
+                    <span class="stat-label">力量:</span>
+                    <span class="stat-value strength" id="player-strength">0</span>
+                </div>
+            </div>
+            <div class="enemy-status">
+                <div class="stat-item">
+                    <span class="stat-label">敵人 HP:</span>
+                    <span class="stat-value enemy-hp" id="enemy-hp">40</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">下回合:</span>
+                    <span class="stat-value enemy-intent" id="enemy-intent">5 傷害</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 回合資訊 -->
+        <div class="turn-info">
+            回合 <span id="turn-number">1</span> / 10
+        </div>
+
+        <!-- 敵人區域 -->
+        <div class="enemy-area">
+            <div style="font-size: 24px; font-weight: bold;">敵人</div>
+            <div class="enemy-intent-text">下回合將造成 5 點傷害</div>
+        </div>
+
+        <!-- 手牌區域 -->
+        <div class="hand-area">
+            <div class="cards-container" id="hand-cards"></div>
+        </div>
+
+        <!-- 操作按鈕 -->
+        <div class="action-buttons">
+            <button class="btn btn-primary" id="end-turn-btn">結束回合</button>
+        </div>
+    </div>
+
+    <!-- 回合結束選擇面板 -->
+    <div class="choice-panel" id="turn-choice-panel">
+        <div class="choice-container">
+            <div class="choice-title">回合結束 - 選擇一項</div>
+            <div class="choice-options">
+                <div class="choice-btn" onclick="chooseAddCard()">
+                    <div class="choice-btn-title">獲得新卡</div>
+                    <div class="choice-btn-desc">從 3 張隨機卡牌中選擇 1 張加入牌組</div>
+                </div>
+                <div class="choice-btn" onclick="chooseHeal()">
+                    <div class="choice-btn-title">回復生命</div>
+                    <div class="choice-btn-desc">回復 5 點生命值</div>
+                </div>
+                <div class="choice-btn" onclick="chooseRemoveCard()">
+                    <div class="choice-btn-title">移除卡牌</div>
+                    <div class="choice-btn-desc">從牌組中永久移除 1 張卡牌</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 卡牌選擇面板 -->
+    <div class="choice-panel" id="card-choice-panel">
+        <div class="choice-container">
+            <div class="choice-title">選擇要獲得的卡牌</div>
+            <div class="card-choice-list" id="card-choice-list"></div>
+        </div>
+    </div>
+
+    <!-- 移除卡牌面板 -->
+    <div class="choice-panel" id="remove-card-panel">
+        <div class="choice-container">
+            <div class="choice-title">選擇要移除的卡牌</div>
+            <div class="remove-card-list" id="remove-card-list"></div>
+        </div>
+    </div>
+
+    <!-- 遊戲結束面板 -->
+    <div class="game-over-panel" id="game-over-panel">
+        <div class="game-over-container">
+            <div class="game-over-title" id="game-over-title">勝利!</div>
+            <div class="game-over-stats">
+                <div class="game-over-stat">
+                    <span>使用回合:</span>
+                    <span id="final-turns">0</span>
+                </div>
+                <div class="game-over-stat">
+                    <span>剩餘生命:</span>
+                    <span id="final-hp">0</span>
+                </div>
+                <div class="game-over-stat">
+                    <span>最終牌組:</span>
+                    <span id="final-deck-size">0 張</span>
+                </div>
+            </div>
+            <button class="btn btn-success" onclick="restartGame()">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        // 遊戲數據定義
+        const CARD_DEFINITIONS = {
+            attack: {
+                id: 'attack',
+                name: '攻擊',
+                cost: 1,
+                type: '穩定牌',
+                description: '造成 4 傷害',
+                effect: (game) => {
+                    const damage = 4 + game.player.strength;
+                    game.enemy.hp -= damage;
+                    return `造成 ${damage} 傷害`;
+                }
+            },
+            block: {
+                id: 'block',
+                name: '防禦',
+                cost: 1,
+                type: '穩定牌',
+                description: '獲得 4 護甲',
+                effect: (game) => {
+                    game.player.armor += 4;
+                    return '獲得 4 護甲';
+                }
+            },
+            charge: {
+                id: 'charge',
+                name: '蓄力',
+                cost: 1,
+                type: '投資牌',
+                description: '獲得 1 層力量 (永久增加攻擊傷害)',
+                effect: (game) => {
+                    game.player.strength += 1;
+                    return '獲得 1 層力量';
+                }
+            },
+            overload: {
+                id: 'overload',
+                name: '過載打擊',
+                cost: 2,
+                type: '風險牌',
+                description: '造成 10 傷害，下回合能量 -1',
+                effect: (game) => {
+                    const damage = 10 + game.player.strength;
+                    game.enemy.hp -= damage;
+                    game.player.energyPenalty = 1;
+                    return `造成 ${damage} 傷害，下回合能量 -1`;
+                }
+            }
+        };
+
+        // 遊戲狀態
+        let gameState = {
+            player: {
+                hp: 30,
+                maxHp: 30,
+                energy: 3,
+                maxEnergy: 3,
+                armor: 0,
+                strength: 0,
+                energyPenalty: 0
+            },
+            enemy: {
+                hp: 40,
+                maxHp: 40,
+                damage: 5
+            },
+            turn: 1,
+            maxTurns: 10,
+            deck: [],
+            hand: [],
+            discardPile: [],
+            drawPile: []
+        };
+
+        // 初始化遊戲
+        function initGame() {
+            gameState = {
+                player: {
+                    hp: 30,
+                    maxHp: 30,
+                    energy: 3,
+                    maxEnergy: 3,
+                    armor: 0,
+                    strength: 0,
+                    energyPenalty: 0
+                },
+                enemy: {
+                    hp: 40,
+                    maxHp: 40,
+                    damage: 5
+                },
+                turn: 1,
+                maxTurns: 10,
+                deck: [],
+                hand: [],
+                discardPile: [],
+                drawPile: []
+            };
+
+            // 初始牌組：4攻擊 + 4防禦 + 2蓄力
+            gameState.deck = [
+                ...Array(4).fill('attack'),
+                ...Array(4).fill('block'),
+                ...Array(2).fill('charge')
+            ];
+
+            shuffleDeck();
+            startTurn();
+            updateUI();
+        }
+
+        // 洗牌
+        function shuffleDeck() {
+            gameState.drawPile = [...gameState.deck];
+            for (let i = gameState.drawPile.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [gameState.drawPile[i], gameState.drawPile[j]] = [gameState.drawPile[j], gameState.drawPile[i]];
+            }
+        }
+
+        // 抽牌
+        function drawCards(count) {
+            for (let i = 0; i < count; i++) {
+                if (gameState.drawPile.length === 0) {
+                    // 重新洗入棄牌堆
+                    gameState.drawPile = [...gameState.discardPile];
+                    gameState.discardPile = [];
+                    for (let i = gameState.drawPile.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [gameState.drawPile[i], gameState.drawPile[j]] = [gameState.drawPile[j], gameState.drawPile[i]];
+                    }
+                }
+
+                if (gameState.drawPile.length > 0 && gameState.hand.length < 5) {
+                    gameState.hand.push(gameState.drawPile.pop());
+                }
+            }
+        }
+
+        // 開始回合
+        function startTurn() {
+            // 重置能量
+            gameState.player.energy = gameState.player.maxEnergy - gameState.player.energyPenalty;
+            gameState.player.energyPenalty = 0;
+
+            // 護甲清空
+            gameState.player.armor = 0;
+
+            // 抽牌
+            gameState.hand = [];
+            drawCards(5);
+
+            updateUI();
+        }
+
+        // 出牌
+        function playCard(index) {
+            const cardId = gameState.hand[index];
+            const card = CARD_DEFINITIONS[cardId];
+
+            if (gameState.player.energy < card.cost) {
+                return;
+            }
+
+            gameState.player.energy -= card.cost;
+            const result = card.effect(gameState);
+
+            // 移除手牌並放入棄牌堆
+            gameState.hand.splice(index, 1);
+            gameState.discardPile.push(cardId);
+
+            updateUI();
+            checkGameEnd();
+        }
+
+        // 結束回合
+        function endTurn() {
+            // 棄掉所有手牌
+            gameState.discardPile.push(...gameState.hand);
+            gameState.hand = [];
+
+            // 敵人行動
+            enemyTurn();
+
+            // 檢查遊戲結束
+            if (checkGameEnd()) {
+                return;
+            }
+
+            // 回合結束選擇
+            showTurnChoicePanel();
+        }
+
+        // 敵人回合
+        function enemyTurn() {
+            let damage = gameState.enemy.damage;
+
+            // 先扣護甲
+            if (gameState.player.armor > 0) {
+                if (gameState.player.armor >= damage) {
+                    gameState.player.armor -= damage;
+                    damage = 0;
+                } else {
+                    damage -= gameState.player.armor;
+                    gameState.player.armor = 0;
+                }
+            }
+
+            // 再扣 HP
+            gameState.player.hp -= damage;
+
+            updateUI();
+        }
+
+        // 下一回合
+        function nextTurn() {
+            gameState.turn++;
+            startTurn();
+        }
+
+        // 檢查遊戲結束
+        function checkGameEnd() {
+            if (gameState.player.hp <= 0) {
+                showGameOver(false);
+                return true;
+            }
+
+            if (gameState.enemy.hp <= 0) {
+                showGameOver(true);
+                return true;
+            }
+
+            if (gameState.turn > gameState.maxTurns) {
+                showGameOver(false);
+                return true;
+            }
+
+            return false;
+        }
+
+        // 顯示遊戲結束
+        function showGameOver(victory) {
+            const panel = document.getElementById('game-over-panel');
+            const title = document.getElementById('game-over-title');
+
+            title.textContent = victory ? '勝利!' : '失敗';
+            title.className = 'game-over-title ' + (victory ? 'victory' : 'defeat');
+
+            document.getElementById('final-turns').textContent = gameState.turn;
+            document.getElementById('final-hp').textContent = gameState.player.hp;
+            document.getElementById('final-deck-size').textContent = gameState.deck.length;
+
+            panel.classList.add('active');
+        }
+
+        // 重新開始
+        function restartGame() {
+            document.getElementById('game-over-panel').classList.remove('active');
+            initGame();
+        }
+
+        // 顯示回合結束選擇
+        function showTurnChoicePanel() {
+            document.getElementById('turn-choice-panel').classList.add('active');
+        }
+
+        // 選擇：獲得新卡
+        function chooseAddCard() {
+            document.getElementById('turn-choice-panel').classList.remove('active');
+
+            // 隨機生成 3 張卡
+            const allCardIds = Object.keys(CARD_DEFINITIONS);
+            const choices = [];
+            for (let i = 0; i < 3; i++) {
+                const randomCard = allCardIds[Math.floor(Math.random() * allCardIds.length)];
+                choices.push(randomCard);
+            }
+
+            const list = document.getElementById('card-choice-list');
+            list.innerHTML = '';
+
+            choices.forEach(cardId => {
+                const card = CARD_DEFINITIONS[cardId];
+                const div = document.createElement('div');
+                div.className = 'card-choice-item';
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <strong>${card.name}</strong>
+                        <span style="background: #51cf66; color: #000; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px;">${card.cost}</span>
+                    </div>
+                    <div style="font-size: 12px; opacity: 0.9;">${card.description}</div>
+                    <div style="font-size: 10px; opacity: 0.7; margin-top: 4px;">${card.type}</div>
+                `;
+                div.onclick = () => selectNewCard(cardId);
+                list.appendChild(div);
+            });
+
+            document.getElementById('card-choice-panel').classList.add('active');
+        }
+
+        // 選擇新卡
+        function selectNewCard(cardId) {
+            gameState.deck.push(cardId);
+            document.getElementById('card-choice-panel').classList.remove('active');
+            nextTurn();
+        }
+
+        // 選擇：回復生命
+        function chooseHeal() {
+            document.getElementById('turn-choice-panel').classList.remove('active');
+            gameState.player.hp = Math.min(gameState.player.hp + 5, gameState.player.maxHp);
+            updateUI();
+            nextTurn();
+        }
+
+        // 選擇：移除卡牌
+        function chooseRemoveCard() {
+            document.getElementById('turn-choice-panel').classList.remove('active');
+
+            const list = document.getElementById('remove-card-list');
+            list.innerHTML = '';
+
+            // 統計牌組中的卡牌
+            const cardCounts = {};
+            gameState.deck.forEach(cardId => {
+                cardCounts[cardId] = (cardCounts[cardId] || 0) + 1;
+            });
+
+            Object.entries(cardCounts).forEach(([cardId, count]) => {
+                const card = CARD_DEFINITIONS[cardId];
+                const div = document.createElement('div');
+                div.className = 'card-choice-item';
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <strong>${card.name}</strong>
+                        <span style="font-size: 12px;">x${count}</span>
+                    </div>
+                    <div style="font-size: 11px; opacity: 0.8;">${card.description}</div>
+                `;
+                div.onclick = () => removeCard(cardId);
+                list.appendChild(div);
+            });
+
+            document.getElementById('remove-card-panel').classList.add('active');
+        }
+
+        // 移除卡牌
+        function removeCard(cardId) {
+            const index = gameState.deck.indexOf(cardId);
+            if (index > -1) {
+                gameState.deck.splice(index, 1);
+            }
+            document.getElementById('remove-card-panel').classList.remove('active');
+            nextTurn();
+        }
+
+        // 更新 UI
+        function updateUI() {
+            // 更新玩家狀態
+            document.getElementById('player-hp').textContent = gameState.player.hp;
+            document.getElementById('player-energy').textContent = gameState.player.energy;
+            document.getElementById('player-armor').textContent = gameState.player.armor;
+            document.getElementById('player-strength').textContent = gameState.player.strength;
+
+            // 顯示/隱藏護甲和力量
+            document.getElementById('armor-display').style.display =
+                gameState.player.armor > 0 ? 'flex' : 'none';
+            document.getElementById('strength-display').style.display =
+                gameState.player.strength > 0 ? 'flex' : 'none';
+
+            // 更新敵人狀態
+            document.getElementById('enemy-hp').textContent = gameState.enemy.hp;
+
+            // 更新回合數
+            document.getElementById('turn-number').textContent = gameState.turn;
+
+            // 更新手牌
+            const handContainer = document.getElementById('hand-cards');
+            handContainer.innerHTML = '';
+
+            gameState.hand.forEach((cardId, index) => {
+                const card = CARD_DEFINITIONS[cardId];
+                const canPlay = gameState.player.energy >= card.cost;
+
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card' + (canPlay ? '' : ' unplayable');
+
+                // 計算實際效果
+                let actualDesc = card.description;
+                if (cardId === 'attack' && gameState.player.strength > 0) {
+                    actualDesc = `造成 ${4 + gameState.player.strength} 傷害`;
+                } else if (cardId === 'overload' && gameState.player.strength > 0) {
+                    actualDesc = `造成 ${10 + gameState.player.strength} 傷害，下回合能量 -1`;
+                }
+
+                cardDiv.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-name">${card.name}</div>
+                        <div class="card-cost">${card.cost}</div>
+                    </div>
+                    <div class="card-description">${actualDesc}</div>
+                    <div class="card-type">${card.type}</div>
+                `;
+
+                if (canPlay) {
+                    cardDiv.onclick = () => playCard(index);
+                }
+
+                handContainer.appendChild(cardDiv);
+            });
+        }
+
+        // 事件綁定
+        document.getElementById('end-turn-btn').addEventListener('click', endTurn);
+
+        // 初始化遊戲
+        initGame();
+    </script>
+</body>
+</html>
