@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>抉擇引擎 v0.4 - 艾爾文森林</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a4d2e 0%, #1a5f3f 50%, #0d3a24 100%);
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: pan-y;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 8px;
+            gap: 8px;
+        }
+
+        /* 頂部狀態區 */
+        .status-bar {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .player-status {
+            flex: 1;
+        }
+
+        .stat-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+        }
+
+        .stat-label {
+            opacity: 0.8;
+            font-size: 11px;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        .hp { color: #ff6b6b; }
+        .energy { color: #51cf66; }
+        .armor { color: #74c0fc; }
+        .retaliation { color: #ff8787; }
+        .charge-buff { color: #ffd43b; }
+
+        .progress-info {
+            text-align: right;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .progress-label {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        /* 敵人區域 */
+        .enemies-area {
+            background: rgba(139, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 10px;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            max-height: 35vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .enemy-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .enemy-card {
+            background: rgba(139, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            border: 2px solid rgba(255, 107, 107, 0.4);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .enemy-card.selected {
+            border-color: #ffd43b;
+            box-shadow: 0 0 10px rgba(255, 212, 59, 0.5);
+        }
+
+        .enemy-card.dead {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .enemy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .enemy-name {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .enemy-hp {
+            color: #ff8787;
+            font-size: 13px;
+        }
+
+        .enemy-intent {
+            font-size: 12px;
+            opacity: 0.9;
+            color: #ffa94d;
+        }
+
+        /* 手牌區域 */
+        .hand-area {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 4px 0;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            border-radius: 8px;
+            padding: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card:active {
+            transform: scale(0.95);
+        }
+
+        .card.unplayable {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .card.cost-increased {
+            border-color: #ff6b6b;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .card-name {
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .card-cost {
+            background: #51cf66;
+            color: #000;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .card-cost.increased {
+            background: #ff6b6b;
+        }
+
+        .card-description {
+            font-size: 11px;
+            opacity: 0.9;
+            line-height: 1.3;
+        }
+
+        .card-from {
+            font-size: 9px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        /* 按鈕區域 */
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #fff;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+        }
+
+        /* 全屏面板 */
+        .fullscreen-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .fullscreen-panel.active {
+            display: flex;
+        }
+
+        .panel-container {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            border-radius: 16px;
+            padding: 20px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel-title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            color: #ffd43b;
+        }
+
+        /* 裝備選擇 */
+        .equipment-selection {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .equipment-slot {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .slot-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #74c0fc;
+        }
+
+        .equipment-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .equipment-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .equipment-btn:active {
+            transform: scale(0.98);
+        }
+
+        .equipment-btn.selected {
+            border-color: #ffd43b;
+            background: rgba(255, 212, 59, 0.2);
+        }
+
+        .equipment-btn.locked {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .equipment-name {
+            font-weight: bold;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .equipment-desc {
+            font-size: 11px;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+
+        .rarity-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .rarity-rare {
+            background: rgba(255, 212, 59, 0.5);
+            color: #000;
+        }
+
+        /* 戰鬥結果 */
+        .battle-result {
+            text-align: center;
+        }
+
+        .result-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .result-stats {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .result-stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .loot-section {
+            background: rgba(255, 212, 59, 0.1);
+            border: 1px solid rgba(255, 212, 59, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .loot-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #ffd43b;
+        }
+
+        /* 隱藏元素 */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="game-screen">
+        <!-- 狀態列 -->
+        <div class="status-bar">
+            <div class="player-status">
+                <div class="stat-row">
+                    <div class="stat-item">
+                        <span class="stat-label">HP:</span>
+                        <span class="stat-value hp" id="player-hp">60</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">能量:</span>
+                        <span class="stat-value energy" id="player-energy">3</span>
+                    </div>
+                    <div class="stat-item hidden" id="armor-display">
+                        <span class="stat-label">護甲:</span>
+                        <span class="stat-value armor" id="player-armor">0</span>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-item hidden" id="retaliation-display">
+                        <span class="stat-label">反擊:</span>
+                        <span class="stat-value retaliation" id="player-retaliation">0</span>
+                    </div>
+                    <div class="stat-item hidden" id="charge-display">
+                        <span class="stat-label">蓄力:</span>
+                        <span class="stat-value charge-buff" id="player-charge">0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="progress-info">
+                <div class="progress-label">艾爾文森林</div>
+                <div id="battle-progress">1 / 4</div>
+            </div>
+        </div>
+
+        <!-- 敵人區域 -->
+        <div class="enemies-area">
+            <div class="enemy-list" id="enemy-list"></div>
+        </div>
+
+        <!-- 手牌區域 -->
+        <div class="hand-area">
+            <div class="cards-container" id="hand-cards"></div>
+        </div>
+
+        <!-- 操作按鈕 -->
+        <div class="action-buttons">
+            <button class="btn btn-primary" id="end-turn-btn">結束回合</button>
+        </div>
+    </div>
+
+    <!-- 裝備選擇面板 -->
+    <div class="fullscreen-panel active" id="equipment-panel">
+        <div class="panel-container">
+            <div class="panel-title">選擇你的裝備</div>
+            <div class="equipment-selection">
+                <!-- 左手 -->
+                <div class="equipment-slot">
+                    <div class="slot-title">左手裝備</div>
+                    <div class="equipment-options" id="left-hand-options"></div>
+                </div>
+                <!-- 右手 -->
+                <div class="equipment-slot">
+                    <div class="slot-title">右手裝備</div>
+                    <div class="equipment-options" id="right-hand-options"></div>
+                </div>
+            </div>
+            <button class="btn btn-success" style="margin-top: 20px; width: 100%;" onclick="confirmEquipment()">進入艾爾文森林</button>
+        </div>
+    </div>
+
+    <!-- 戰鬥結果面板 -->
+    <div class="fullscreen-panel" id="battle-result-panel">
+        <div class="panel-container">
+            <div class="battle-result">
+                <div class="result-title" id="result-title">戰鬥勝利!</div>
+                <div class="result-stats">
+                    <div class="result-stat">
+                        <span>剩餘生命:</span>
+                        <span id="result-hp">0</span>
+                    </div>
+                </div>
+                <div id="loot-container" class="hidden">
+                    <div class="loot-section">
+                        <div class="loot-title">獲得裝備!</div>
+                        <div id="loot-equipment"></div>
+                    </div>
+                </div>
+                <div id="heal-container" class="hidden">
+                    <div class="loot-section">
+                        <div class="loot-title">裝備池已空</div>
+                        <div>回復 10 HP</div>
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="next-battle-btn" onclick="nextBattle()">繼續前進</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 遊戲結束面板 -->
+    <div class="fullscreen-panel" id="game-over-panel">
+        <div class="panel-container">
+            <div class="battle-result">
+                <div class="result-title" id="game-over-title">區域完成!</div>
+                <div class="result-stats">
+                    <div class="result-stat">
+                        <span>最終生命:</span>
+                        <span id="final-hp">0</span>
+                    </div>
+                    <div class="result-stat">
+                        <span>裝備組合:</span>
+                        <span id="final-equipment">-</span>
+                    </div>
+                </div>
+                <button class="btn btn-success" onclick="restartGame()">重新開始</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 裝備與卡牌定義 ====================
+        const EQUIPMENT_DEFINITIONS = {
+            recruit_hammer: {
+                id: 'recruit_hammer',
+                name: '新兵之鎚',
+                slot: 'left',
+                rarity: 'common',
+                description: '最基礎穩定輸出',
+                cards: [
+                    { id: 'strike', name: '打擊', cost: 1, desc: '造成 5 點傷害', effect: 'damage', value: 5, count: 5 }
+                ]
+            },
+            guardian_shield: {
+                id: 'guardian_shield',
+                name: '守護者之盾',
+                slot: 'right',
+                rarity: 'common',
+                description: '防守反擊流',
+                cards: [
+                    { id: 'defend', name: '防禦', cost: 1, desc: '獲得 6 點護甲', effect: 'armor', value: 6, count: 3 },
+                    { id: 'shield_bash', name: '盾擊', cost: 1, desc: '造成 4 點傷害，並獲得 4 點護甲', effect: 'shield_bash', value: 4, count: 2 }
+                ]
+            },
+            blessed_relic: {
+                id: 'blessed_relic',
+                name: '祝福聖物',
+                slot: 'right',
+                rarity: 'common',
+                description: '續航型玩法',
+                cards: [
+                    { id: 'holy_light', name: '聖光術', cost: 1, desc: '回復 6 HP', effect: 'heal', value: 6, count: 3 },
+                    { id: 'holy_strike', name: '神聖之擊', cost: 1, desc: '造成 4 點傷害，回復 2 HP', effect: 'damage_heal', value: 4, heal: 2, count: 2 }
+                ]
+            },
+            training_sword: {
+                id: 'training_sword',
+                name: '雙手訓練劍',
+                slot: 'left',
+                rarity: 'rare',
+                description: '高爆發風險流',
+                cards: [
+                    { id: 'heavy_strike', name: '重擊', cost: 2, desc: '造成 12 點傷害', effect: 'damage', value: 12, count: 3 },
+                    { id: 'charge_slash', name: '蓄力斬', cost: 1, desc: '下回合第一張攻擊卡 +6 傷害（可疊加）', effect: 'charge_buff', value: 6, count: 2 }
+                ]
+            },
+            counter_book: {
+                id: 'counter_book',
+                name: '反擊之書',
+                slot: 'right',
+                rarity: 'rare',
+                description: '多怪戰鬥剋星',
+                cards: [
+                    { id: 'holy_counter', name: '神聖反擊', cost: 1, desc: '本回合每次受到攻擊後，對隨機敵人造成 3 點傷害', effect: 'retaliation', value: 3, count: 5 }
+                ]
+            }
+        };
+
+        // ==================== 敵人定義 ====================
+        const ENEMY_DEFINITIONS = {
+            forest_wolf: {
+                id: 'forest_wolf',
+                name: '森林野狼',
+                hp: 18,
+                skills: [
+                    { id: 'bite', name: '撕咬', damage: 5 }
+                ]
+            },
+            gnoll_scout: {
+                id: 'gnoll_scout',
+                name: '豺狼人斥候',
+                hp: 30,
+                skillPattern: [
+                    { id: 'throw_axe', name: '投擲飛斧', damage: 7 },
+                    { id: 'charging', name: '蓄力', damage: 0, isCharging: true },
+                    { id: 'heavy_blow', name: '重擊', damage: 12 }
+                ]
+            },
+            gnoll_shaman: {
+                id: 'gnoll_shaman',
+                name: '豺狼人巫醫',
+                hp: 28,
+                skills: [
+                    { id: 'heal_ally', name: '治療', effect: 'heal_ally', value: 8, condition: 'ally_alive' },
+                    { id: 'shadow_bolt', name: '暗影箭', damage: 8 }
+                ]
+            },
+            gnoll_chieftain: {
+                id: 'gnoll_chieftain',
+                name: '豺狼人酋長',
+                hp: 120,
+                skillPattern: [
+                    { id: 'ground_slam', name: '震地打擊', damage: 10 },
+                    { id: 'intimidate', name: '威嚇咆哮', effect: 'cost_increase' },
+                    { id: 'rage_slash', name: '狂怒斬擊', damage: 18 }
+                ]
+            }
+        };
+
+        // ==================== 戰鬥配置 ====================
+        const BATTLE_CONFIGS = [
+            { enemies: ['forest_wolf', 'forest_wolf'] },
+            { enemies: ['gnoll_scout'] },
+            { enemies: ['gnoll_shaman', 'forest_wolf'] },
+            { enemies: ['gnoll_chieftain'], isBoss: true }
+        ];
+
+        // ==================== 遊戲狀態 ====================
+        let gameState = {
+            player: {
+                hp: 60,
+                maxHp: 60,
+                energy: 3,
+                maxEnergy: 3,
+                armor: 0,
+                retaliationDamage: 0,
+                chargeBuff: 0,
+                nextCardCostIncrease: 0
+            },
+            equipment: {
+                left: null,
+                right: null
+            },
+            deck: [],
+            hand: [],
+            discardPile: [],
+            drawPile: [],
+            enemies: [],
+            selectedEnemyIndex: 0,
+            battleIndex: 0,
+            collectedEquipment: ['recruit_hammer', 'guardian_shield', 'blessed_relic']
+        };
+
+        // ==================== 初始化 ====================
+        function initGame() {
+            gameState = {
+                player: {
+                    hp: 60,
+                    maxHp: 60,
+                    energy: 3,
+                    maxEnergy: 3,
+                    armor: 0,
+                    retaliationDamage: 0,
+                    chargeBuff: 0,
+                    nextCardCostIncrease: 0
+                },
+                equipment: {
+                    left: null,
+                    right: null
+                },
+                deck: [],
+                hand: [],
+                discardPile: [],
+                drawPile: [],
+                enemies: [],
+                selectedEnemyIndex: 0,
+                battleIndex: 0,
+                collectedEquipment: ['recruit_hammer', 'guardian_shield', 'blessed_relic']
+            };
+
+            showEquipmentPanel();
+        }
+
+        function showEquipmentPanel() {
+            const leftOptions = document.getElementById('left-hand-options');
+            const rightOptions = document.getElementById('right-hand-options');
+
+            leftOptions.innerHTML = '';
+            rightOptions.innerHTML = '';
+
+            Object.values(EQUIPMENT_DEFINITIONS).forEach(eq => {
+                const isCollected = gameState.collectedEquipment.includes(eq.id);
+
+                if (eq.slot === 'left') {
+                    const btn = createEquipmentButton(eq, 'left', isCollected);
+                    leftOptions.appendChild(btn);
+                } else {
+                    const btn = createEquipmentButton(eq, 'right', isCollected);
+                    rightOptions.appendChild(btn);
+                }
+            });
+
+            document.getElementById('equipment-panel').classList.add('active');
+        }
+
+        function createEquipmentButton(eq, slot, isCollected) {
+            const div = document.createElement('div');
+            div.className = 'equipment-btn' + (isCollected ? '' : ' locked');
+
+            if (isCollected) {
+                div.onclick = () => selectEquipment(eq.id, slot);
+            }
+
+            const cardList = eq.cards.map(c => `${c.name} ×${c.count}`).join(', ');
+            const lockText = isCollected ? '' : '<div style="color: #ff6b6b; font-size: 10px; margin-top: 4px;">尚未解鎖</div>';
+
+            div.innerHTML = `
+                <div class="equipment-name">
+                    <span>${eq.name}</span>
+                    ${eq.rarity === 'rare' ? '<span class="rarity-tag rarity-rare">稀有</span>' : ''}
+                </div>
+                <div class="equipment-desc" style="margin-bottom: 6px;">${eq.description}</div>
+                <div class="equipment-desc" style="font-size: 10px; opacity: 0.6;">${cardList}</div>
+                ${lockText}
+            `;
+
+            return div;
+        }
+
+        function selectEquipment(equipmentId, slot) {
+            gameState.equipment[slot] = equipmentId;
+
+            const container = slot === 'left' ? 'left-hand-options' : 'right-hand-options';
+            document.querySelectorAll(`#${container} .equipment-btn`).forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+        }
+
+        function confirmEquipment() {
+            if (!gameState.equipment.left || !gameState.equipment.right) {
+                alert('請選擇左手和右手裝備');
+                return;
+            }
+
+            buildDeck();
+            document.getElementById('equipment-panel').classList.remove('active');
+            startBattle(0);
+        }
+
+        function buildDeck() {
+            gameState.deck = [];
+
+            const leftEq = EQUIPMENT_DEFINITIONS[gameState.equipment.left];
+            const rightEq = EQUIPMENT_DEFINITIONS[gameState.equipment.right];
+
+            leftEq.cards.forEach(card => {
+                for (let i = 0; i < card.count; i++) {
+                    gameState.deck.push({ ...card, from: leftEq.name });
+                }
+            });
+
+            rightEq.cards.forEach(card => {
+                for (let i = 0; i < card.count; i++) {
+                    gameState.deck.push({ ...card, from: rightEq.name });
+                }
+            });
+        }
+
+        // ==================== 戰鬥系統 ====================
+        function startBattle(battleIndex) {
+            gameState.battleIndex = battleIndex;
+
+            const config = BATTLE_CONFIGS[battleIndex];
+
+            gameState.enemies = config.enemies.map(enemyId => {
+                const def = ENEMY_DEFINITIONS[enemyId];
+                return {
+                    ...def,
+                    hp: def.hp,
+                    maxHp: def.hp,
+                    patternIndex: 0,
+                    nextSkill: null
+                };
+            });
+
+            shuffleDeck();
+            startTurn();
+            updateUI();
+        }
+
+        function shuffleDeck() {
+            gameState.drawPile = [...gameState.deck];
+            for (let i = gameState.drawPile.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [gameState.drawPile[i], gameState.drawPile[j]] = [gameState.drawPile[j], gameState.drawPile[i]];
+            }
+        }
+
+        function drawCards(count) {
+            for (let i = 0; i < count; i++) {
+                if (gameState.drawPile.length === 0) {
+                    gameState.drawPile = [...gameState.discardPile];
+                    gameState.discardPile = [];
+                    for (let j = gameState.drawPile.length - 1; j > 0; j--) {
+                        const k = Math.floor(Math.random() * (j + 1));
+                        [gameState.drawPile[j], gameState.drawPile[k]] = [gameState.drawPile[k], gameState.drawPile[j]];
+                    }
+                }
+
+                if (gameState.drawPile.length > 0 && gameState.hand.length < 5) {
+                    gameState.hand.push(gameState.drawPile.pop());
+                }
+            }
+        }
+
+        function startTurn() {
+            gameState.player.energy = gameState.player.maxEnergy;
+            gameState.player.armor = 0;
+            gameState.player.retaliationDamage = 0;
+
+            gameState.hand = [];
+            drawCards(5);
+
+            gameState.enemies.forEach(enemy => {
+                if (enemy.hp > 0) {
+                    decideEnemyAction(enemy);
+                }
+            });
+
+            updateUI();
+        }
+
+        function decideEnemyAction(enemy) {
+            if (enemy.skillPattern) {
+                enemy.nextSkill = enemy.skillPattern[enemy.patternIndex];
+                enemy.patternIndex = (enemy.patternIndex + 1) % enemy.skillPattern.length;
+            } else if (enemy.skills) {
+                if (enemy.skills.length === 1) {
+                    enemy.nextSkill = enemy.skills[0];
+                } else {
+                    for (let skill of enemy.skills) {
+                        if (skill.condition === 'ally_alive') {
+                            const hasAlly = gameState.enemies.some(e => e.id === 'forest_wolf' && e.hp > 0 && e !== enemy);
+                            if (hasAlly) {
+                                enemy.nextSkill = skill;
+                                return;
+                            }
+                        }
+                    }
+                    enemy.nextSkill = enemy.skills[enemy.skills.length - 1];
+                }
+            }
+        }
+
+        function playCard(index) {
+            const card = gameState.hand[index];
+            let actualCost = card.cost;
+
+            if (gameState.player.nextCardCostIncrease > 0) {
+                actualCost += gameState.player.nextCardCostIncrease;
+                gameState.player.nextCardCostIncrease = 0;
+            }
+
+            if (gameState.player.energy < actualCost) {
+                return;
+            }
+
+            const target = gameState.enemies[gameState.selectedEnemyIndex];
+
+            gameState.player.energy -= actualCost;
+
+            executeCardEffect(card, target);
+
+            gameState.hand.splice(index, 1);
+            gameState.discardPile.push(card);
+
+            updateUI();
+            checkBattleEnd();
+        }
+
+        function executeCardEffect(card, target) {
+            switch (card.effect) {
+                case 'damage':
+                    let damage = card.value;
+                    if (gameState.player.chargeBuff > 0) {
+                        damage += gameState.player.chargeBuff;
+                        gameState.player.chargeBuff = 0;
+                    }
+                    dealDamage(target, damage);
+                    break;
+                case 'armor':
+                    gameState.player.armor += card.value;
+                    break;
+                case 'shield_bash':
+                    dealDamage(target, card.value);
+                    gameState.player.armor += card.value;
+                    break;
+                case 'heal':
+                    gameState.player.hp = Math.min(gameState.player.hp + card.value, gameState.player.maxHp);
+                    break;
+                case 'damage_heal':
+                    dealDamage(target, card.value);
+                    gameState.player.hp = Math.min(gameState.player.hp + card.heal, gameState.player.maxHp);
+                    break;
+                case 'charge_buff':
+                    gameState.player.chargeBuff += card.value;
+                    break;
+                case 'retaliation':
+                    gameState.player.retaliationDamage += card.value;
+                    break;
+            }
+        }
+
+        function dealDamage(enemy, damage) {
+            enemy.hp -= damage;
+        }
+
+        function endTurn() {
+            gameState.discardPile.push(...gameState.hand);
+            gameState.hand = [];
+
+            enemyTurn();
+
+            if (checkBattleEnd()) {
+                return;
+            }
+
+            startTurn();
+        }
+
+        function enemyTurn() {
+            gameState.enemies.forEach(enemy => {
+                if (enemy.hp <= 0) return;
+
+                const skill = enemy.nextSkill;
+
+                if (skill.isCharging) {
+                    return;
+                }
+
+                if (skill.damage) {
+                    let damage = skill.damage;
+
+                    if (gameState.player.armor > 0) {
+                        if (gameState.player.armor >= damage) {
+                            gameState.player.armor -= damage;
+                            damage = 0;
+                        } else {
+                            damage -= gameState.player.armor;
+                            gameState.player.armor = 0;
+                        }
+                    }
+
+                    gameState.player.hp -= damage;
+
+                    // 觸發反擊（只要受到攻擊）
+                    if (gameState.player.retaliationDamage > 0) {
+                        const aliveEnemies = gameState.enemies.filter(e => e.hp > 0);
+                        if (aliveEnemies.length > 0) {
+                            const randomEnemy = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
+                            randomEnemy.hp -= gameState.player.retaliationDamage;
+                        }
+                    }
+                }
+
+                if (skill.effect === 'heal_ally') {
+                    const wolf = gameState.enemies.find(e => e.id === 'forest_wolf' && e.hp > 0);
+                    if (wolf) {
+                        wolf.hp = Math.min(wolf.hp + skill.value, wolf.maxHp);
+                    }
+                }
+
+                if (skill.effect === 'cost_increase') {
+                    gameState.player.nextCardCostIncrease = 1;
+                }
+            });
+        }
+
+        function checkBattleEnd() {
+            if (gameState.player.hp <= 0) {
+                showGameOver(false);
+                return true;
+            }
+
+            if (gameState.enemies.every(e => e.hp <= 0)) {
+                showBattleResult();
+                return true;
+            }
+
+            return false;
+        }
+
+        function showBattleResult() {
+            document.getElementById('result-hp').textContent = gameState.player.hp;
+
+            const lootContainer = document.getElementById('loot-container');
+            const healContainer = document.getElementById('heal-container');
+
+            const availableEquipment = Object.keys(EQUIPMENT_DEFINITIONS).filter(
+                id => !gameState.collectedEquipment.includes(id)
+            );
+
+            if (Math.random() < 0.3 && availableEquipment.length > 0) {
+                const lootId = availableEquipment[Math.floor(Math.random() * availableEquipment.length)];
+                const loot = EQUIPMENT_DEFINITIONS[lootId];
+
+                gameState.collectedEquipment.push(lootId);
+
+                lootContainer.classList.remove('hidden');
+                healContainer.classList.add('hidden');
+                document.getElementById('loot-equipment').textContent = `${loot.name} - ${loot.description}`;
+            } else if (availableEquipment.length === 0) {
+                gameState.player.hp = Math.min(gameState.player.hp + 10, gameState.player.maxHp);
+                lootContainer.classList.add('hidden');
+                healContainer.classList.remove('hidden');
+            } else {
+                lootContainer.classList.add('hidden');
+                healContainer.classList.add('hidden');
+            }
+
+            document.getElementById('battle-result-panel').classList.add('active');
+        }
+
+        function nextBattle() {
+            document.getElementById('battle-result-panel').classList.remove('active');
+
+            if (gameState.battleIndex >= BATTLE_CONFIGS.length - 1) {
+                showGameOver(true);
+            } else {
+                startBattle(gameState.battleIndex + 1);
+            }
+        }
+
+        function showGameOver(victory) {
+            const title = document.getElementById('game-over-title');
+            title.textContent = victory ? '艾爾文森林完成!' : '失敗';
+            title.style.color = victory ? '#51cf66' : '#ff6b6b';
+
+            document.getElementById('final-hp').textContent = gameState.player.hp;
+
+            const leftEq = EQUIPMENT_DEFINITIONS[gameState.equipment.left];
+            const rightEq = EQUIPMENT_DEFINITIONS[gameState.equipment.right];
+            document.getElementById('final-equipment').textContent = `${leftEq.name} + ${rightEq.name}`;
+
+            document.getElementById('game-over-panel').classList.add('active');
+        }
+
+        function restartGame() {
+            document.getElementById('game-over-panel').classList.remove('active');
+            initGame();
+        }
+
+        // ==================== UI 更新 ====================
+        function updateUI() {
+            document.getElementById('player-hp').textContent = gameState.player.hp;
+            document.getElementById('player-energy').textContent = gameState.player.energy;
+            document.getElementById('player-armor').textContent = gameState.player.armor;
+            document.getElementById('player-retaliation').textContent = gameState.player.retaliationDamage;
+            document.getElementById('player-charge').textContent = gameState.player.chargeBuff;
+
+            document.getElementById('armor-display').classList.toggle('hidden', gameState.player.armor === 0);
+            document.getElementById('retaliation-display').classList.toggle('hidden', gameState.player.retaliationDamage === 0);
+            document.getElementById('charge-display').classList.toggle('hidden', gameState.player.chargeBuff === 0);
+
+            document.getElementById('battle-progress').textContent = `${gameState.battleIndex + 1} / 4`;
+
+            const enemyList = document.getElementById('enemy-list');
+            enemyList.innerHTML = '';
+
+            gameState.enemies.forEach((enemy, index) => {
+                const div = document.createElement('div');
+                div.className = 'enemy-card';
+                if (index === gameState.selectedEnemyIndex) div.classList.add('selected');
+                if (enemy.hp <= 0) div.classList.add('dead');
+
+                div.onclick = () => {
+                    if (enemy.hp > 0) {
+                        gameState.selectedEnemyIndex = index;
+                        updateUI();
+                    }
+                };
+
+                const intentText = getIntentText(enemy);
+
+                div.innerHTML = `
+                    <div class="enemy-header">
+                        <div class="enemy-name">${enemy.name}</div>
+                        <div class="enemy-hp">${Math.max(0, enemy.hp)} / ${enemy.maxHp}</div>
+                    </div>
+                    <div class="enemy-intent">${intentText}</div>
+                `;
+
+                enemyList.appendChild(div);
+            });
+
+            const handContainer = document.getElementById('hand-cards');
+            handContainer.innerHTML = '';
+
+            gameState.hand.forEach((card, index) => {
+                let actualCost = card.cost;
+                let costIncreased = false;
+
+                if (gameState.player.nextCardCostIncrease > 0 && index === 0) {
+                    actualCost += gameState.player.nextCardCostIncrease;
+                    costIncreased = true;
+                }
+
+                const canPlay = gameState.player.energy >= actualCost;
+
+                const div = document.createElement('div');
+                div.className = 'card' + (canPlay ? '' : ' unplayable') + (costIncreased ? ' cost-increased' : '');
+
+                let desc = card.desc;
+                if (card.effect === 'damage' && gameState.player.chargeBuff > 0) {
+                    desc = `造成 ${card.value + gameState.player.chargeBuff} 點傷害`;
+                }
+
+                div.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-name">${card.name}</div>
+                        <div class="card-cost ${costIncreased ? 'increased' : ''}">${actualCost}</div>
+                    </div>
+                    <div class="card-description">${desc}</div>
+                    <div class="card-from">來自: ${card.from}</div>
+                `;
+
+                if (canPlay) {
+                    div.onclick = () => playCard(index);
+                }
+
+                handContainer.appendChild(div);
+            });
+        }
+
+        function getIntentText(enemy) {
+            if (enemy.hp <= 0) return '已擊敗';
+
+            const skill = enemy.nextSkill;
+            if (!skill) return '待機';
+
+            if (skill.isCharging) {
+                return `${skill.name}（無效果）`;
+            }
+
+            if (skill.damage) {
+                return `${skill.name}: ${skill.damage} 傷害`;
+            }
+
+            if (skill.effect === 'heal_ally') {
+                return `${skill.name}: 回復野狼 ${skill.value} HP`;
+            }
+
+            if (skill.effect === 'cost_increase') {
+                return `${skill.name}: 下張卡牌 +1 費用`;
+            }
+
+            return skill.name;
+        }
+
+        document.getElementById('end-turn-btn').addEventListener('click', endTurn);
+
+        initGame();
+    </script>
+</body>
+</html>
